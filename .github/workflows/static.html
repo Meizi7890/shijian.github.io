@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="时间日历">
+<meta name="theme-color" content="#F2F2F7">
+<title>时间日历</title>
+<style>
+:root{
+  --bg:#F2F2F7; --card:#FFFFFF; --text:#1C1C1E; --text2:#8E8E93;
+  --sep:#E5E5EA; --accent:#007AFF; --accent-soft:rgba(0,122,255,.12);
+  --danger:#FF3B30; --shadow:0 2px 12px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000; --card:#1C1C1E; --text:#FFFFFF; --text2:#8E8E93;
+    --sep:#38383A; --accent:#0A84FF; --accent-soft:rgba(10,132,255,.22);
+    --danger:#FF453A; --shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;overflow-x:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px;
+  -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+  padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  transition:background .2s;
+}
+button{font-family:inherit;cursor:pointer;}
+
+/* ===== 顶栏 ===== */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+}
+.nav-left{display:flex;align-items:center;gap:2px;}
+.nav-right{display:flex;align-items:center;gap:2px;}
+.icon-btn{
+  width:36px;height:36px;border:0;background:transparent;color:var(--accent);
+  display:flex;align-items:center;justify-content:center;border-radius:50%;
+  transition:background .15s;
+}
+.icon-btn:active{background:var(--accent-soft);}
+.month-label{font-size:19px;font-weight:700;letter-spacing:-.3px;min-width:112px;text-align:center;}
+.pill-btn{
+  border:0;background:var(--accent-soft);color:var(--accent);
+  font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;
+  transition:transform .15s;
+}
+.pill-btn:active{transform:scale(.94);}
+
+/* ===== 月历 ===== */
+.cal-card{
+  background:var(--card); border-radius:18px;
+  margin:0 16px; padding:6px 8px 10px; box-shadow:var(--shadow);
+}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);}
+.weekdays span{
+  text-align:center;font-size:12px;font-weight:500;color:var(--text2);padding:8px 0;
+}
+.weekdays span:nth-child(1),.weekdays span:nth-child(7){opacity:.6;}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.cell{
+  height:50px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;border-radius:12px;
+  transition:background .12s;
+}
+.cell:active{background:var(--accent-soft);}
+.cell .num{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-variant-numeric:tabular-nums;
+  transition:background .15s,color .15s;
+}
+.cell.out .num{color:var(--text2);opacity:.4;}
+.cell.today .num{color:var(--accent);font-weight:700;}
+.cell.sel .num{background:var(--accent);color:#fff;font-weight:600;}
+.cell.sel.today .num{color:#fff;}
+.dots{display:flex;gap:3px;height:5px;margin-top:1px;}
+.dots i{width:5px;height:5px;border-radius:50%;display:block;}
+
+/* ===== 列表 ===== */
+.section-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:22px 20px 10px;
+}
+.section-head h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px;}
+.section-head .meta{font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;}
+
+.list{padding:0 0 8px;}
+.event{
+  background:var(--card); border-radius:14px;
+  margin:0 16px 8px; padding:13px 16px 13px 14px;
+  display:flex; gap:12px; align-items:center;
+  box-shadow:var(--shadow);
+  transition:transform .15s;
+}
+.event:active{transform:scale(.975);}
+.bar{width:4px;align-self:stretch;min-height:34px;border-radius:3px;flex:none;}
+.ev-body{flex:1;min-width:0;}
+.ev-title{
+  font-size:16px;font-weight:600;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ev-sub{
+  font-size:13px;color:var(--text2);margin-top:3px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.empty{
+  margin:0 16px;background:var(--card);border-radius:14px;
+  padding:32px 16px;text-align:center;color:var(--text2);font-size:15px;
+  box-shadow:var(--shadow);
+}
+.add-inline{
+  display:block;margin:16px auto 0;
+  background:var(--accent-soft);color:var(--accent);
+  border:0;border-radius:999px;padding:10px 20px;
+  font-size:15px;font-weight:600;transition:transform .15s;
+}
+.add-inline:active{transform:scale(.94);}
+
+/* ===== FAB ===== */
+.fab{
+  position:fixed; right:20px; bottom:calc(26px + env(safe-area-inset-bottom));
+  width:58px;height:58px;border-radius:50%;border:0;
+  background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(0,122,255,.42);
+  z-index:30; transition:transform .15s;
+}
+.fab:active{transform:scale(.9);}
+
+/* ===== 底部弹层 ===== */
+.mask{
+  position:fixed;inset:0;background:rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:opacity .28s;z-index:50;
+}
+.mask.show{opacity:1;pointer-events:auto;}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  background:var(--bg);border-radius:20px 20px 0 0;
+  transform:translateY(100%);
+  transition:transform .34s cubic-bezier(.32,.72,0,1);
+  max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));
+}
+.sheet.show{transform:translateY(0);}
+.sheet-head{
+  position:sticky;top:0;z-index:2;background:var(--bg);
+  display:flex;align-items:center;gap:8px;
+  padding:14px 16px 10px;
+}
+.sheet-title{flex:1;text-align:center;font-size:16px;font-weight:700;}
+.head-spacer{width:52px;flex:none;}
+.text-btn{
+  border:0;background:none;color:var(--accent);
+  font-size:17px;padding:6px 2px;
+}
+.text-btn.strong{font-weight:700;}
+
+.group{
+  background:var(--card);border-radius:12px;
+  margin:0 16px 18px;overflow:hidden;box-shadow:var(--shadow);
+}
+.row{
+  display:flex;align-items:center;gap:12px;
+  padding:0 14px;min-height:50px;
+}
+.row + .row{border-top:.5px solid var(--sep);}
+.row label{font-size:16px;color:var(--text);flex:none;width:44px;}
+.row input{
+  flex:1;min-width:0;border:0;background:transparent;
+  font-size:16px;font-family:inherit;color:var(--text);
+  text-align:right;outline:none;padding:12px 0;
+}
+.row input::placeholder{color:var(--text2);}
+input[type="date"],input[type="time"]{
+  font-variant-numeric:tabular-nums;background:transparent;
+}
+.group textarea{
+  display:block;width:100%;border:0;background:transparent;
+  padding:14px;font-size:16px;font-family:inherit;color:var(--text);
+  resize:none;outline:none;
+}
+.group textarea::placeholder{color:var(--text2);}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px;}
+.chip{
+  border:1.5px solid transparent;border-radius:999px;
+  padding:8px 15px;font-size:14px;font-weight:500;
+  background:var(--bg);color:var(--text);
+  transition:all .15s;
+}
+.chip:active{transform:scale(.94);}
+.chip.active{
+  background:var(--c-soft);color:var(--c);
+  border-color:var(--c);font-weight:700;
+}
+.delete-btn{
+  display:none;width:calc(100% - 32px);margin:0 16px;
+  background:var(--card);color:var(--danger);border:0;
+  border-radius:12px;padding:15px;font-size:16px;font-weight:500;
+  box-shadow:var(--shadow);
+}
+.delete-btn:active{opacity:.7;}
+
+/* ===== 导出面板 ===== */
+.export-info{
+  padding:0 20px 12px;font-size:13px;color:var(--text2);
+  font-variant-numeric:tabular-nums;
+}
+.opt{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 16px;cursor:pointer;
+  transition:background .15s;
+}
+.opt + .opt{border-top:.5px solid var(--sep);}
+.opt:active{background:var(--accent-soft);}
+.opt-ico{
+  width:38px;height:38px;border-radius:10px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.opt-body{flex:1;min-width:0;}
+.opt-title{font-size:16px;font-weight:600;letter-spacing:-.2px;}
+.opt-sub{font-size:13px;color:var(--text2);margin-top:2px;line-height:1.35;}
+.opt-arrow{color:var(--text2);opacity:.45;flex:none;}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));
+  transform:translate(-50%,12px);
+  background:rgba(28,28,30,.92);color:#fff;
+  padding:11px 20px;border-radius:999px;
+  font-size:14px;font-weight:500;line-height:1.35;
+  opacity:0;pointer-events:none;z-index:90;
+  max-width:82vw;text-align:center;
+  transition:opacity .25s, transform .25s;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+@media (prefers-color-scheme: dark){
+  .toast{background:rgba(235,235,245,.95);color:#000;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="nav-left">
+    <button class="icon-btn" id="prevBtn" aria-label="上个月">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="month-label" id="monthLabel"></span>
+    <button class="icon-btn" id="nextBtn" aria-label="下个月">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+  <div class="nav-right">
+    <button class="pill-btn" id="todayBtn">今天</button>
+    <button class="icon-btn" id="exportBtn" aria-label="导出数据">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"/>
+        <path d="M8 7l4-4 4 4"/>
+        <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="cal-card">
+  <div class="weekdays">
+    <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="section-head">
+  <h2 id="listTitle">今天</h2>
+  <span class="meta" id="listMeta"></span>
+</div>
+
+<div class="list" id="list"></div>
+
+<button class="fab" id="fab" aria-label="添加日程">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div class="mask" id="mask"></div>
+
+<!-- 日程编辑面板 -->
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <button class="text-btn" id="cancelBtn">取消</button>
+    <span class="sheet-title" id="sheetTitle">新建日程</span>
+    <button class="text-btn strong" id="saveBtn">保存</button>
+  </div>
+
+  <div class="group">
+    <div class="row">
+      <label>标题</label>
+      <input id="titleInput" type="text" placeholder="要做什么？" maxlength="40" enterkeyhint="done">
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="row">
+      <label>日期</label>
+      <input id="dateInput" type="date">
+    </div>
+    <div class="row">
+      <label>开始</label>
+      <input id="startInput" type="time">
+    </div>
+    <div class="row">
+      <label>结束</label>
+      <input id="endInput" type="time">
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="group">
+    <textarea id="noteInput" placeholder="备注（可选）" rows="2"></textarea>
+  </div>
+
+  <button class="delete-btn" id="delBtn">删除日程</button>
+</div>
+
+<!-- 导出面板 -->
+<div class="sheet" id="exportSheet">
+  <div class="sheet-head">
+    <button class="text-btn" id="exportCancel">取消</button>
+    <span class="sheet-title">导出数据</span>
+    <span class="head-spacer"></span>
+  </div>
+  <div class="export-info" id="exportInfo"></div>
+  <div class="group">
+    <div class="opt" data-type="json">
+      <span class="opt-ico" style="background:rgba(0,122,255,.14);color:#007AFF;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1"/>
+          <path d="M16 3h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-1"/>
+        </svg>
+      </span>
+      <div class="opt-body">
+        <div class="opt-title">导出 JSON 备份</div>
+        <div class="opt-sub">完整数据文件，可保存到「文件」App</div>
+      </div>
+      <svg class="opt-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <div class="opt" data-type="ics">
+      <span class="opt-ico" style="background:rgba(255,59,48,.14);color:#FF3B30;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="3"/>
+          <path d="M3 10h18M8 3v4M16 3v4"/>
+        </svg>
+      </span>
+      <div class="opt-body">
+        <div class="opt-title">导出 iCalendar (.ics)</div>
+        <div class="opt-sub">可导入 iPhone「日历」App 与系统日历</div>
+      </div>
+      <svg class="opt-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <div class="opt" data-type="copy">
+      <span class="opt-ico" style="background:rgba(52,199,89,.14);color:#34C759;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="12" height="12" rx="2.5"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </span>
+      <div class="opt-body">
+        <div class="opt-title">复制 JSON 文本</div>
+        <div class="opt-sub">粘贴到备忘录或聊天窗口保存</div>
+      </div>
+      <svg class="opt-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- 工具 ---------- */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toMin = t => { const p = String(t||'0:0').split(':').map(Number); return (p[0]||0)*60 + (p[1]||0); };
+const fmtMins = t => { t = Math.max(0, Math.min(t, 23*60+59)); return pad(Math.floor(t/60)) + ':' + pad(t%60); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+function fmtDur(m){
+  if(!m || m <= 0) return '';
+  const h = Math.floor(m/60), mm = m%60;
+  if(h && mm) return h + '小时' + mm + '分';
+  if(h) return h + '小时';
+  return mm + '分钟';
+}
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+/* ---------- 分类 ---------- */
+const CATS = {
+  work:   { name:'工作', color:'#007AFF' },
+  study:  { name:'学习', color:'#5856D6' },
+  life:   { name:'生活', color:'#34C759' },
+  health: { name:'健康', color:'#FF9500' },
+  other:  { name:'其他', color:'#8E8E93' }
+};
+const catOf = k => CATS[k] || CATS.other;
+
+/* ---------- 状态 ---------- */
+const KEY = 'tm_calendar_v1';
+let events = [];
+let viewDate = new Date();
+let selectedDate = ymd(new Date());
+let editingId = null;
+let formCat = 'work';
+
+/* ---------- 元素 ---------- */
+const monthLabel = $('#monthLabel');
+const grid = $('#grid');
+const listEl = $('#list');
+const listTitle = $('#listTitle');
+const listMeta = $('#listMeta');
+const mask = $('#mask');
+const sheetEl = $('#sheet');
+const sheetTitle = $('#sheetTitle');
+const titleInput = $('#titleInput');
+const dateInput = $('#dateInput');
+const startInput = $('#startInput');
+const endInput = $('#endInput');
+const noteInput = $('#noteInput');
+const chipWrap = $('#chips');
+const delBtn = $('#delBtn');
+const exportSheet = $('#exportSheet');
+const exportInfo = $('#exportInfo');
+const toastEl = $('#toast');
+
+/* ---------- 存储 ---------- */
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    events = Array.isArray(arr) ? arr : [];
+  }catch(e){ events = []; }
+}
+function persist(){
+  try{ localStorage.setItem(KEY, JSON.stringify(events)); }catch(e){}
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+}
+
+/* ---------- 渲染日历 ---------- */
+function render(){
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  monthLabel.textContent = `${y}年${m+1}月`;
+
+  const startDay = new Date(y, m, 1).getDay();
+  const dim = new Date(y, m+1, 0).getDate();
+  const prevDim = new Date(y, m, 0).getDate();
+  const rows = Math.ceil((startDay + dim) / 7);
+  const cells = rows * 7;
+  const todayStr = ymd(new Date());
+
+  const map = {};
+  for(const e of events){ (map[e.date] = map[e.date] || []).push(e); }
+
+  let html = '';
+  for(let i = 0; i < cells; i++){
+    let dNum, dStr, out = false;
+    if(i < startDay){
+      dNum = prevDim - startDay + 1 + i;
+      dStr = ymd(new Date(y, m-1, dNum));
+      out = true;
+    } else if(i >= startDay + dim){
+      dNum = i - startDay - dim + 1;
+      dStr = ymd(new Date(y, m+1, dNum));
+      out = true;
+    } else {
+      dNum = i - startDay + 1;
+      dStr = ymd(new Date(y, m, dNum));
+    }
+    const evs = map[dStr] || [];
+    const cls = ['cell',
+      out ? 'out' : '',
+      dStr === todayStr ? 'today' : '',
+      dStr === selectedDate ? 'sel' : ''
+    ].filter(Boolean).join(' ');
+
+    let dots = '';
+    if(evs.length){
+      const sorted = evs.slice().sort((a,b)=> a.start.localeCompare(b.start)).slice(0,3);
+      dots = '<div class="dots">' + sorted.map(e =>
+        `<i style="background:${catOf(e.cat).color}"></i>`).join('') + '</div>';
+    }
+    html += `<div class="${cls}" data-date="${dStr}"><span class="num">${dNum}</span>${dots}</div>`;
+  }
+  grid.innerHTML = html;
+
+  renderList();
+}
+
+/* ---------- 渲染列表 ---------- */
+function renderList(){
+  const d = parseYmd(selectedDate);
+  const WD = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const todayStr = ymd(new Date());
+
+  let title = `${d.getMonth()+1}月${d.getDate()}日 ${WD[d.getDay()]}`;
+  if(selectedDate === todayStr) title = '今天 · ' + title;
+  listTitle.textContent = title;
+
+  const evs = events.filter(e => e.date === selectedDate)
+                    .sort((a,b) => a.start.localeCompare(b.start));
+
+  let total = 0;
+  evs.forEach(e => { total += Math.max(0, toMin(e.end) - toMin(e.start)); });
+  listMeta.textContent = evs.length
+    ? `${evs.length} 项${total ? ' · ' + fmtDur(total) : ''}`
+    : '';
+
+  if(!evs.length){
+    listEl.innerHTML = `<div class="empty">这天还没有安排<br>
+      <button class="add-inline" id="emptyAdd">+ 添加日程</button></div>`;
+    return;
+  }
+
+  listEl.innerHTML = evs.map(e => {
+    const c = catOf(e.cat);
+    const dur = Math.max(0, toMin(e.end) - toMin(e.start));
+    const note = e.note ? ` · ${esc(e.note)}` : '';
+    return `<div class="event" data-id="${e.id}">
+      <span class="bar" style="background:${c.color}"></span>
+      <div class="ev-body">
+        <div class="ev-title">${esc(e.title)}</div>
+        <div class="ev-sub">${e.start} – ${e.end}${dur ? ' · ' + fmtDur(dur) : ''}${note}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 分类选择 ---------- */
+function renderChips(){
+  chipWrap.innerHTML = Object.keys(CATS).map(k => {
+    const c = CATS[k];
+    const active = k === formCat ? ' active' : '';
+    return `<button class="chip${active}" data-cat="${k}"
+      style="--c:${c.color};--c-soft:${hexA(c.color,.15)}">${c.name}</button>`;
+  }).join('');
+}
+
+/* ---------- 遮罩管理 ---------- */
+function hideMaskIfNeeded(){
+  const editOpen = sheetEl.classList.contains('show');
+  const exportOpen = exportSheet.classList.contains('show');
+  if(!editOpen && !exportOpen){
+    mask.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+}
+
+/* ---------- 日程弹层 ---------- */
+function openSheet(ev){
+  editingId = ev ? ev.id : null;
+  sheetTitle.textContent = ev ? '编辑日程' : '新建日程';
+  delBtn.style.display = ev ? 'block' : 'none';
+
+  if(ev){
+    titleInput.value = ev.title;
+    dateInput.value = ev.date;
+    startInput.value = ev.start;
+    endInput.value = ev.end;
+    noteInput.value = ev.note || '';
+    formCat = ev.cat || 'other';
+  } else {
+    titleInput.value = '';
+    dateInput.value = selectedDate;
+    const now = new Date();
+    let m0 = Math.ceil((now.getHours()*60 + now.getMinutes()) / 30) * 30;
+    if(m0 >= 23*60) m0 = 22*60;
+    const m1 = Math.min(m0 + 60, 23*60 + 59);
+    startInput.value = fmtMins(m0);
+    endInput.value = fmtMins(m1);
+    noteInput.value = '';
+    formCat = 'work';
+  }
+  renderChips();
+  mask.classList.add('show');
+  sheetEl.classList.add('show');
+  sheetEl.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet(){
+  sheetEl.classList.remove('show');
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  hideMaskIfNeeded();
+}
+
+function handleSave(){
+  const title = titleInput.value.trim() || '未命名日程';
+  const date = dateInput.value || selectedDate;
+  let s = startInput.value || '09:00';
+  let en = endInput.value || '10:00';
+  if(toMin(en) <= toMin(s)) en = fmtMins(toMin(s) + 60);
+
+  if(editingId){
+    const ev = events.find(x => x.id === editingId);
+    if(ev) Object.assign(ev, { title, date, start:s, end:en, cat:formCat, note:noteInput.value.trim() });
+  } else {
+    events.push({
+      id: uid(), title, date, start:s, end:en,
+      cat: formCat, note: noteInput.value.trim(), createdAt: Date.now()
+    });
+  }
+  persist();
+
+  selectedDate = date;
+  const d = parseYmd(date);
+  viewDate = new Date(d.getFullYear(), d.getMonth(), 1);
+
+  closeSheet();
+  render();
+}
+
+/* ================= 导出功能 ================= */
+
+/* 生成 JSON 备份 */
+function buildJSON(){
+  return JSON.stringify({
+    app: '时间日历',
+    format: 'time-calendar-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    count: events.length,
+    events: events
+  }, null, 2);
+}
+
+/* ICS 文本转义 */
+function icsEsc(s){
+  return String(s == null ? '' : s)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+/* 本地时间 → ICS 时间戳 */
+function icsDateTime(dateStr, timeStr){
+  const p = String(timeStr || '0:0').split(':').map(Number);
+  return dateStr.replace(/-/g, '') + 'T' + pad(p[0] || 0) + pad(p[1] || 0) + '00';
+}
+
+/* UTC 时间戳（DTSTAMP） */
+function icsStamp(){
+  const d = new Date();
+  return d.getUTCFullYear() + pad(d.getUTCMonth()+1) + pad(d.getUTCDate()) + 'T'
+       + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + 'Z';
+}
+
+/* 按 RFC5545 折行（每行不超过 75 字节） */
+function icsFold(line){
+  const enc = new TextEncoder();
+  if(enc.encode(line).length <= 73) return line;
+  let out = '', cur = 0;
+  for(const ch of line){
+    const len = enc.encode(ch).length;
+    if(cur + len > 73){ out += '\r\n '; cur = 1; }
+    out += ch;
+    cur += len;
+  }
+  return out;
+}
+
+/* 生成 iCalendar 文本 */
+function buildICS(){
+  const L = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//TimeCalendar//Time Calendar//CN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:时间日历'
+  ];
+  const sorted = events.slice().sort((a,b)=>
+    a.date === b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date)
+  );
+  const stamp = icsStamp();
+
+  for(const e of sorted){
+    L.push('BEGIN:VEVENT');
+    L.push('UID:' + e.id + '@timecalendar');
+    L.push('DTSTAMP:' + stamp);
+    L.push('DTSTART:' + icsDateTime(e.date, e.start));
+    L.push('DTEND:' + icsDateTime(e.date, e.end));
+    L.push('SUMMARY:' + icsEsc(e.title));
+    if(e.note) L.push('DESCRIPTION:' + icsEsc(e.note));
+    L.push('CATEGORIES:' + icsEsc(catOf(e.cat).name));
+    L.push('END:VEVENT');
+  }
+  L.push('END:VCALENDAR');
+
+  return L.map(icsFold).join('\r\n') + '\r\n';
+}
+
+/* 触发文件下载 */
+function download(filename, content, mime){
+  try{
+    const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1500);
+    return true;
+  }catch(err){
+    return false;
+  }
+}
+
+/* 复制文本（含降级方案） */
+async function copyText(text){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){ /* 继续降级 */ }
+
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){
+    return false;
+  }
+}
+
+/* 文件名 */
+function exportName(ext){
+  const d = new Date();
+  return `时间日历-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.${ext}`;
+}
+
+/* 打开导出面板 */
+function openExport(){
+  if(events.length){
+    const dates = events.map(e => e.date).sort();
+    const min = dates[0], max = dates[dates.length - 1];
+    const fmt = s => { const p = s.split('-'); return `${+p[1]}月${+p[2]}日`; };
+    exportInfo.textContent = (min === max)
+      ? `共 ${events.length} 条日程 · ${fmt(min)}`
+      : `共 ${events.length} 条日程 · ${fmt(min)} 至 ${fmt(max)}`;
+  } else {
+    exportInfo.textContent = '还没有任何日程可以导出';
+  }
+  mask.classList.add('show');
+  exportSheet.classList.add('show');
+  exportSheet.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeExport(){
+  exportSheet.classList.remove('show');
+  hideMaskIfNeeded();
+}
+
+/* 执行导出 */
+exportSheet.addEventListener('click', async e => {
+  const opt = e.target.closest('.opt');
+  if(!opt) return;
+  const type = opt.dataset.type;
+
+  if(!events.length){
+    showToast('还没有任何日程可导出');
+    return;
+  }
+
+  if(type === 'json'){
+    const ok = download(exportName('json'), buildJSON(), 'application/json');
+    closeExport();
+    showToast(ok ? 'JSON 备份已导出' : '导出失败，请改用「复制 JSON 文本」');
+  }
+  else if(type === 'ics'){
+    const ok = download(exportName('ics'), buildICS(), 'text/calendar');
+    closeExport();
+    showToast(ok ? 'iCalendar 文件已导出' : '导出失败，请重试');
+  }
+  else if(type === 'copy'){
+    const text = buildJSON();
+    const ok = await copyText(text);
+    closeExport();
+    showToast(ok ? `已复制 ${events.length} 条日程的 JSON 文本` : '复制失败，请重试');
+  }
+});
+
+/* ---------- 事件绑定 ---------- */
+$('#prevBtn').addEventListener('click', () => {
+  viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+  render();
+});
+$('#nextBtn').addEventListener('click', () => {
+  viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+  render();
+});
+$('#todayBtn').addEventListener('click', () => {
+  const t = new Date();
+  viewDate = new Date(t.getFullYear(), t.getMonth(), 1);
+  selectedDate = ymd(t);
+  render();
+});
+
+$('#exportBtn').addEventListener('click', openExport);
+$('#exportCancel').addEventListener('click', closeExport);
+
+grid.addEventListener('click', e => {
+  const cell = e.target.closest('.cell');
+  if(!cell) return;
+  selectedDate = cell.dataset.date;
+  const d = parseYmd(selectedDate);
+  if(d.getFullYear() !== viewDate.getFullYear() || d.getMonth()
